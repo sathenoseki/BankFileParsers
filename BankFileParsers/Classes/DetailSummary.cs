@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using BankFileParsers.Enums;
 
-namespace BankFileParsers
+namespace BankFileParsers.Classes
 {
     public class DetailSummary
     {

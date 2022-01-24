@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace BankFileParsers
+namespace BankFileParsers.Helpers
 {
     public static class ListToCsv
     {
@@ -38,7 +38,7 @@ namespace BankFileParsers
                     head = PrePostFix(field) + _fieldSep;
                 }
                 else
-                    throw new Exception(string.Format("{0} is not a valid property of type: \"{1}\"", field, type.Name));
+                    throw new Exception($"{field} is not a valid property of type: \"{type.Name}\"");
 
                 header += head;
             }

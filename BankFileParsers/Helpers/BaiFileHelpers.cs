@@ -1,9 +1,11 @@
 ﻿using System;
-using System.Globalization;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using BankFileParsers.Classes;
+using BankFileParsers.Enums;
 
-namespace BankFileParsers
+namespace BankFileParsers.Helpers
 {
     public static class BaiFileHelpers
     {
@@ -13,7 +15,7 @@ namespace BankFileParsers
         {
             if (string.IsNullOrWhiteSpace(date) && string.IsNullOrWhiteSpace(time)) return DateTime.MinValue;
 
-            // An end of day can be 9999, if it is they really ment 2400
+            // An end of day can be 9999, if it is they really meant 2400
             var dateString = date;
             if (time == "9999") time = "2400";
             if (time == string.Empty) dateString += "0000";
@@ -23,7 +25,7 @@ namespace BankFileParsers
             var hourPos = format.IndexOf("HH", StringComparison.Ordinal);
             var hour = dateString.Substring(hourPos, 2);
             var addDay = hour == "24";
-            if (addDay) dateString = dateString.Substring(0, hourPos) + "00" + dateString.Substring(hourPos + 2);
+            if (addDay) dateString = string.Concat(dateString.AsSpan(0, hourPos), "00", dateString.AsSpan(hourPos + 2));
 
             var dateTime = DateTime.ParseExact(dateString, format, CultureInfo.InvariantCulture);
             if (addDay) dateTime += TimeSpan.FromHours(24);
@@ -31,26 +33,16 @@ namespace BankFileParsers
             return dateTime;
         }
 
-        public static GroupStatus GetGroupStatus(string statusCode)
-        {
-            var ret = GroupStatus.Update;
-            switch (statusCode)
+        public static GroupStatus GetGroupStatus(string statusCode) =>
+             statusCode switch
             {
-                case "1":
-                    ret = GroupStatus.Update;
-                    break;
-                case "2":
-                    ret = GroupStatus.Deletion;
-                    break;
-                case "3":
-                    ret = GroupStatus.Correction;
-                    break;
-                case "4":
-                    ret = GroupStatus.TestOnly;
-                    break;
-            }
-            return ret;
-        }
+                "1" => GroupStatus.Update,
+                "2" => GroupStatus.Deletion,
+                "3" => GroupStatus.Correction,
+                "4" => GroupStatus.TestOnly,
+                _ => GroupStatus.Update
+            };
+
 
         public static string GetCurrencyCode(string code)
         {
@@ -81,43 +73,32 @@ namespace BankFileParsers
             return decimal.Parse(amount);
         }
 
-        public static string TrimStart(this string target, string trimString)
+        private static string TrimStart(this string target, string trimString)
         {
             if (string.IsNullOrEmpty(trimString)) return target;
 
-            string result = target;
+            var result = target;
             while (result.StartsWith(trimString))
             {
-                result = result.Substring(trimString.Length);
+                result = result[trimString.Length..];
             }
 
             return result;
         }
 
-        public static AsOfDateModifier GetAsOfDateModifier(string modifier)
-        {
-            var ret = AsOfDateModifier.Missing;
-            switch (modifier)
+        public static AsOfDateModifier GetAsOfDateModifier(string modifier) =>
+            modifier switch
             {
-                case "1":
-                    ret = AsOfDateModifier.InterimPreviousDay;
-                    break;
-                case "2":
-                    ret = AsOfDateModifier.FinalPreviousDay;
-                    break;
-                case "3":
-                    ret = AsOfDateModifier.InterimSameDay;
-                    break;
-                case "4":
-                    ret = AsOfDateModifier.FinalSameDay;
-                    break;
-            }
-            return ret;
-        }
+                "1" => AsOfDateModifier.InterimPreviousDay,
+                "2" => AsOfDateModifier.FinalPreviousDay,
+                "3" => AsOfDateModifier.InterimSameDay,
+                "4" => AsOfDateModifier.FinalSameDay,
+                _ => AsOfDateModifier.Missing
+            };
 
         public static TransactionDetail GetTransactionDetail(string typeCode)
         {
-            if (_transactionDetail == null) _transactionDetail = TransactionDetailBuilder.Build();
+            _transactionDetail ??= TransactionDetailBuilder.Build();
             // It looks like our bank uses type codes that are not in the spec - return a "dummy record"
             var item = _transactionDetail.FirstOrDefault(i => i.TypeCode == typeCode) ?? new TransactionDetail()
             {
@@ -129,6 +110,5 @@ namespace BankFileParsers
             };
             return item;
         }
-
     }
 }

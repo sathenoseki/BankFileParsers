@@ -2,8 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using BankFileParsers.Classes;
 
-namespace BankFileParsers
+namespace BankFileParsers.Helpers
 {
     internal class AccountFundTypeFactory
     {
@@ -11,7 +12,7 @@ namespace BankFileParsers
         public string CustomerAccountNumber { get; set; }
         public string CurrencyCode { get; set; }
 
-        private readonly Stack _stack;
+        private readonly Stack<string> _stack;
 
         public AccountFundTypeFactory(IEnumerable<string> data)
         {
@@ -22,25 +23,30 @@ namespace BankFileParsers
                 if (!line.EndsWith("/")) throw new Exception("I got a line without a trailing /");
                 line = line.Replace("/", "");
 
-                if (line.StartsWith("03"))
+                var m = line[..2];
+                switch (m)
                 {
-                    // The first thre fields are record, account and currency
-                    var fields = line.Split(',');
-                    RecordCode = fields[0];
-                    CustomerAccountNumber = fields[1];
-                    CurrencyCode = fields[2];
-                    var trailing = fields.Count() > 2? ",":"";
-                    var replaced = string.Format("{0},{1},{2}{3}", fields[0], fields[1], fields[2], trailing);
-                    line = line.Substring(replaced.Length);
+                    case "03":
+                    {
+                        // The first three fields are record, account and currency
+                        var fields = line.Split(',');
+                        RecordCode = fields[0];
+                        CustomerAccountNumber = fields[1];
+                        CurrencyCode = fields[2];
+                        var trailing = fields.Length > 2? ",":"";
+                        var replaced = $"{fields[0]},{fields[1]},{fields[2]}{trailing}";
+                        line = line[replaced.Length..];
+                        break;
+                    }
+                    case "88":
+                        line = line[2..];
+                        break;
+                    default:
+                        throw new Exception("I got a bad line: " + line);
                 }
-                else if (line.StartsWith("88"))
-                {
-                    line = line.Substring(2);
-                }
-                else throw new Exception("I got a bad line: " + line);
                 lineData += line;
             }
-            _stack = new Stack(lineData.Split(',').Reverse().ToArray());
+            _stack = new Stack<string>(lineData.Split(',').Reverse().ToArray());
         }
 
         public FundType GetNext()

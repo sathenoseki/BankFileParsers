@@ -1,4 +1,6 @@
-﻿namespace BankFileParsers
+﻿using BankFileParsers.Enums;
+
+namespace BankFileParsers.Classes
 {
     public class TransactionDetail
     {

@@ -3,8 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using BankFileParsers.Helpers;
 
-namespace BankFileParsers
+namespace BankFileParsers.Classes
 {
     public class Detail
     {
@@ -15,7 +16,7 @@ namespace BankFileParsers
         public string Immediate { get; set; }
         public string OneDay { get; set; }
         public string TwoOrMoreDays { get; set; }
-        public DateTime? AvalibleDate { get; set; }
+        public DateTime? AvailableDate { get; set; }
         public string BankReferenceNumber { get; set; }
         public string CustomerReferenceNumber { get; set; }
         public string Text { get; set; }
@@ -46,7 +47,7 @@ namespace BankFileParsers
                 }
                 else if (line.StartsWith("88"))
                 {
-                    line = line.Substring(2);//.Replace("/", " ");
+                    line = line[2..];//.Replace("/", " ");
 
                     if (!line.EndsWith("/"))
                     {
@@ -73,14 +74,14 @@ namespace BankFileParsers
                     TwoOrMoreDays = stack.Pop().ToString();
                     break;
                 case "D":
-                    // next field is the number of distripution pairs
-                    // number of days, avalible amount
+                    // next field is the number of distribution pairs
+                    // number of days, available amount
                     // currencyCode would be used here
                     throw new Exception("I don't want to deal with this one yet - " + currencyCode);
                 case "V":
                     var date = stack.Pop().ToString();
                     var time = stack.Pop().ToString();
-                    AvalibleDate = BaiFileHelpers.DateTimeFromFields(date, time);
+                    AvailableDate = BaiFileHelpers.DateTimeFromFields(date, time);
                     break;
             }
 
@@ -95,7 +96,7 @@ namespace BankFileParsers
             Text = ConcatenateTextLines();
         }
 
-        private string LeftoverStackToString(Stack stack)
+        private static string LeftoverStackToString(Stack stack)
         {
             var ret = "";
             while (stack.Count > 0)
@@ -119,12 +120,12 @@ namespace BankFileParsers
             var fields = Text.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var field in fields)
             {
-                if (dictionaryList.Count > 0 && !field.Contains(":"))
+                if (dictionaryList.Count > 0 && !field.Contains(':'))
                 {
-                    var text = dictionaryList[dictionaryList.Count - 1];
+                    var text = dictionaryList[^1];
                     if (text.EndsWith(":")) text += field;
                     else text += " " + field;
-                    dictionaryList[dictionaryList.Count - 1] = text;
+                    dictionaryList[^1] = text;
                 }
                 else
                     dictionaryList.Add(field);
@@ -142,7 +143,7 @@ namespace BankFileParsers
                 {
                     try
                     {
-                        // TODO - actually create a counter object in case there's a thrid one
+                        // TODO - actually create a counter object in case there's a third one
                         TextDictionary.Add(parts[0] + "2", parts[1]);
                     }
                     catch

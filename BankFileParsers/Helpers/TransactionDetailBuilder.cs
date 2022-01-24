@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
+using BankFileParsers.Classes;
+using BankFileParsers.Enums;
 
-namespace BankFileParsers
+namespace BankFileParsers.Helpers
 {
     public static class TransactionDetailBuilder
     {

@@ -3,19 +3,22 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using BankFileParsers.Helpers;
+using BankFileParsers.Parsers;
 
 namespace BankFileParsers.Example
 {
     public static class Program
     {
-        public static void Main()
+        public static async Task Main()
         {
-            Process(@"C:\temp\BAI", @"C:\temp\BAI-trans", @"C:\temp\bai-time.txt");
+          await  Process(@".\Files", @".\Files", @".\Files\bai-time.txt");
         }
 
-        static void Process(string basePath, string transPath, string logName)
+        static async Task Process(string basePath, string transPath, string logName)
         {
-            var parser = new BaiParser();
+          //  var parser = new BaiParser();
             var total = new Stopwatch();
             total.Start();
 
@@ -26,37 +29,34 @@ namespace BankFileParsers.Example
                 Console.Write(fileName + ": ");
                 try
                 {
-                    var bai = parser.Parse(fileName);
+                    var bai = await BaiParser.Parse(File.OpenRead(fileName));
                     var newFileName = fileName.Replace(basePath, transPath);
                     Directory.CreateDirectory(Path.GetDirectoryName(newFileName));
-                    parser.Write(newFileName, bai);
+                    await using var fs = new FileStream(fileName, FileMode.OpenOrCreate);
+                    await using var s = BaiParser.Write(bai);
+                    await s.CopyToAsync(fs);
                 }
                 catch { }
                 sw.Stop();
                 var ts = sw.Elapsed;
 
                 // Format and display the TimeSpan value.
-                var elapsedTime = string.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                    ts.Hours, ts.Minutes, ts.Seconds,
-                    ts.Milliseconds / 10);
+                var elapsedTime = $"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}.{ts.Milliseconds / 10:00}";
                 Console.WriteLine(elapsedTime);
-                File.AppendAllText(logName, fileName + ": " + elapsedTime + Environment.NewLine);
+                await File.AppendAllTextAsync(logName, fileName + ": " + elapsedTime + Environment.NewLine);
                 //break;
             }
             total.Stop();
             var fin = total.Elapsed;
-            var totalTime = string.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                fin.Hours, fin.Minutes, fin.Seconds,
-                fin.Milliseconds / 10);
-            File.AppendAllText(logName, "Total: " + totalTime + Environment.NewLine);
+            var totalTime = $"{fin.Hours:00}:{fin.Minutes:00}:{fin.Seconds:00}.{fin.Milliseconds / 10:00}";
+            await File.AppendAllTextAsync(logName, "Total: " + totalTime + Environment.NewLine);
         }
 
-        public static void Main_old()
+        public static async Task Main_old()
         {
-            var parser = new BaiParser();
 
             const string fileName = @"BAI-sample.txt";
-            var bai = parser.Parse(fileName);
+            var bai = await BaiParser.Parse(fileName);
             var trans = BaiTranslator.Translate(bai);
 
             var summary = BaiTranslator.GetSummaryInformation(trans);
@@ -70,8 +70,10 @@ namespace BankFileParsers.Example
             Console.WriteLine("Detail Count: " + detail.Count);
             Console.WriteLine("Detail with Dictionary: " + detailDictionary.Count);
 
-            // Verify that the parser works - do a diff with the imput file
-            parser.Write(fileName + ".new", bai);
+            // Verify that the parser works - do a diff with the input file
+            // var stream = BaiParser.Write( bai);
+            //
+            // File.Open(fileName + ".new", FileMode.OpenOrCreate).c;
 
             // Dump to CSV?
             //detail.CsvFieldSeparator('|');
@@ -89,7 +91,7 @@ namespace BankFileParsers.Example
             //var csv = detail.ExportToCsv(null, new List<string> { "FileIdentificationNumber" });
             // It can be just a dictionary key
             //var csv = detail.ExportToCsv(new List<string>{"PAYMENT ID"}, new List<string>());
-            File.WriteAllText(@"BAI-sample.csv", csv);
+            await File.WriteAllTextAsync(@"BAI-sample.csv", csv);
         }
     }
 }

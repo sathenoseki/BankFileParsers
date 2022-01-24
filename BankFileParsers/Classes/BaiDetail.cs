@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace BankFileParsers
+namespace BankFileParsers.Classes
 {
     public class BaiDetail
     {

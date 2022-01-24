@@ -1,6 +1,7 @@
 ﻿using System;
+using BankFileParsers.Enums;
 
-namespace BankFileParsers
+namespace BankFileParsers.Classes
 {
     [AttributeUsage(AttributeTargets.Property)]
     public class Usage : Attribute

@@ -1,4 +1,4 @@
-﻿namespace BankFileParsers
+﻿namespace BankFileParsers.Enums
 {
     public enum LevelType
     {

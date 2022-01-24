@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using BankFileParsers.Classes;
+using BankFileParsers.Helpers;
 
-namespace BankFileParsers
+namespace BankFileParsers.Parsers
 {
-    public class BaiTranslator
+    public static class BaiTranslator
     {
         public static TranslatedBaiFile Translate(BaiFile data)
         {
@@ -15,7 +17,7 @@ namespace BankFileParsers
         {
             var space = "";
             for (var i = 1; i < indent; i++) space += "  ";
-            return string.Format("{0}{1}: {2}{3}", space, name, value, Environment.NewLine);
+            return $"{space}{name}: {value}{Environment.NewLine}";
         }
 
         /// <summary>
@@ -89,10 +91,10 @@ namespace BankFileParsers
                         ret += Format("Immediate", detail.Immediate, indent);
                         ret += Format("OneDay", detail.OneDay, indent);
                         ret += Format("TwoOrMoreDays", detail.TwoOrMoreDays, indent);
-                        ret += Format("AvalibleDate", detail.AvalibleDate, indent);
+                        ret += Format("AvailableDate", detail.AvailableDate, indent);
                         ret += Format("BankReferenceNumber", detail.BankReferenceNumber, indent);
                         ret += Format("CustomerReferenceNumber", detail.CustomerReferenceNumber, indent);
-                        ret += Format("Text", detail.Text.Substring(0, Math.Min(detail.Text.Length, maxWidth)), indent);
+                        ret += Format("Text", detail.Text[..Math.Min(detail.Text.Length, maxWidth)], indent);
                         indent--;
                     }
                     indent--;

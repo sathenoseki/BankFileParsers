@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using BankFileParsers.Enums;
+using BankFileParsers.Helpers;
 
-namespace BankFileParsers
+namespace BankFileParsers.Classes
 {
     public class Group
     {

@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using BankFileParsers.Helpers;
 
-namespace BankFileParsers
+namespace BankFileParsers.Classes
 {
     public class Account
     {
