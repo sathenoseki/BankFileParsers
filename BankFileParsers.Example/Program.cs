@@ -13,7 +13,13 @@ namespace BankFileParsers.Example
     {
         public static async Task Main()
         {
-          await  Process(@".\Files", @".\Files", @".\Files\bai-time.txt");
+         // await  Process(@"Files", @"Files\test.txt", @"Bai-sample.txt");
+         var s = File.OpenRead(Path.Combine("Files", "BAI-Test.txt"));
+         var bai = await BaiParser.Parse(s);
+         var trans = BaiTranslator.Translate(bai);
+         var g = trans.Groups.First();
+         var acc = g.Accounts.SelectMany(a => a.Details).GroupBy(d => d.TypeCode);
+
         }
 
         static async Task Process(string basePath, string transPath, string logName)
@@ -30,6 +36,7 @@ namespace BankFileParsers.Example
                 try
                 {
                     var bai = await BaiParser.Parse(File.OpenRead(fileName));
+                    var t = BaiTranslator.Translate(bai);
                     var newFileName = fileName.Replace(basePath, transPath);
                     Directory.CreateDirectory(Path.GetDirectoryName(newFileName));
                     await using var fs = new FileStream(fileName, FileMode.OpenOrCreate);
@@ -60,14 +67,14 @@ namespace BankFileParsers.Example
             var trans = BaiTranslator.Translate(bai);
 
             var summary = BaiTranslator.GetSummaryInformation(trans);
-            Console.WriteLine("Summary Count: " + summary.Count);
+            Console.WriteLine("Summary Count: " + summary.Count());
 
             var dictionaryKeys = new List<string> { "PREAUTHORIZED ACH FROM", "ORIGINATOR ID", "ENTRY DESCRIPTION",
                 "PAYMENT ID", "RECEIVER INFORMATION", "ADDENDA INFORMATION" };
 
             var detail = BaiTranslator.GetDetailInformation(trans, dictionaryKeys);
             var detailDictionary = detail.Where(p => p.TextDictionary.Count > 0).ToList();
-            Console.WriteLine("Detail Count: " + detail.Count);
+            Console.WriteLine("Detail Count: " + detail.Count());
             Console.WriteLine("Detail with Dictionary: " + detailDictionary.Count);
 
             // Verify that the parser works - do a diff with the input file

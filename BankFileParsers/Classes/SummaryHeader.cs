@@ -20,7 +20,7 @@ namespace BankFileParsers.Classes
         [Usage(UsageType.Both)]
         public string SenderIdentification { get; set; }
         [Usage(UsageType.Oracle)]
-        public string ReceiverIndetification { get; set; }
+        public string ReceiverIdentification { get; set; }
         [Usage(UsageType.Oracle)]
         public string FileIdentificationNumber { get; set; }
         [Usage(UsageType.Oracle)]

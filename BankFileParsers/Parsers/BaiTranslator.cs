@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using BankFileParsers.Classes;
 using BankFileParsers.Helpers;
 
@@ -91,7 +92,7 @@ namespace BankFileParsers.Parsers
                         ret += Format("Immediate", detail.Immediate, indent);
                         ret += Format("OneDay", detail.OneDay, indent);
                         ret += Format("TwoOrMoreDays", detail.TwoOrMoreDays, indent);
-                        ret += Format("AvailableDate", detail.AvailableDate, indent);
+                        ret += Format("AvailableDate", detail.FundsAvailableDate, indent);
                         ret += Format("BankReferenceNumber", detail.BankReferenceNumber, indent);
                         ret += Format("CustomerReferenceNumber", detail.CustomerReferenceNumber, indent);
                         ret += Format("Text", detail.Text[..Math.Min(detail.Text.Length, maxWidth)], indent);
@@ -119,48 +120,40 @@ namespace BankFileParsers.Parsers
         }
 
         /// <summary>
-        /// Returns a List of SummaryHeader information in the BAI file
+        /// Returns a IEnumerable of SummaryHeader information in the BAI file
         /// </summary>
         /// <param name="data">The translated BAI object</param>
-        /// <returns>A List of SummaryHeader</returns>
-        public static List<SummaryHeader> GetSummaryInformation(TranslatedBaiFile data)
+        /// <returns>A IEnumerable of SummaryHeader</returns>
+        public static IEnumerable<SummaryHeader> GetSummaryInformation(TranslatedBaiFile data)
         {
-            var ret = new List<SummaryHeader>();
-            foreach (var group in data.Groups)
-            {
-                foreach (var account in group.Accounts)
+            return from @group in data.Groups
+                from account in @group.Accounts
+                from fund in account.FundsTypes
+                let amount = BaiFileHelpers.GetAmount(fund.Amount, @group.CurrencyCode)
+                select new SummaryHeader()
                 {
-                    foreach (var fund in account.FundsTypes)
-                    {
-                        var amount = BaiFileHelpers.GetAmount(fund.Amount, group.CurrencyCode);
-                        ret.Add(new SummaryHeader()
-                        {
-                            Date = group.AsOfDateTime,
-                            CreationDate = data.FileCreationDateTime,
-                            SenderIdentification = data.SenderIdentification,
-                            ReceiverIndetification = data.ReceiverIdentification,
-                            FileIdentificationNumber = data.FileIdentificationNumber,
-                            CurrencyCode = account.CurrencyCode,
-                            CustomerAccountNumber = account.CustomerAccountNumber,
-                            Amount = amount,
-                            Count = fund.ItemCount,
-                            FundType = fund.FundsType,
-                            TypeCode = fund.Detail.TypeCode,
-                            TypeDescription = fund.Detail.Description
-                        });
-                    }
-                }
-            }
-            return ret;
+                    Date = @group.AsOfDateTime,
+                    CreationDate = data.FileCreationDateTime,
+                    SenderIdentification = data.SenderIdentification,
+                    ReceiverIdentification = data.ReceiverIdentification,
+                    FileIdentificationNumber = data.FileIdentificationNumber,
+                    CurrencyCode = account.CurrencyCode,
+                    CustomerAccountNumber = account.CustomerAccountNumber,
+                    Amount = amount,
+                    Count = fund.ItemCount,
+                    FundType = fund.FundsType,
+                    TypeCode = fund.Detail.TypeCode,
+                    TypeDescription = fund.Detail.Description
+                };
         }
 
         /// <summary>
-        /// Returns a List of DetailSummary
+        /// Returns a IEnumerable of DetailSummary
         /// </summary>
         /// <param name="data">The translated BAI object</param>
         /// <param name="dictionaryKeys">Any Keys in the Detail.TextDictionary (if any) you would like to export</param>
         /// <returns>A List of DetailSummary</returns>
-        public static List<DetailSummary> GetDetailInformation(TranslatedBaiFile data, List<string> dictionaryKeys)
+        public static IEnumerable<DetailSummary> GetDetailInformation(TranslatedBaiFile data, List<string> dictionaryKeys)
         {
             var ret = new List<DetailSummary>();
             foreach (var group in data.Groups)
@@ -170,18 +163,10 @@ namespace BankFileParsers.Parsers
                     foreach (var detail in account.Details)
                     {
                         var detailType = BaiFileHelpers.GetTransactionDetail(detail.TypeCode);
-                        var textDictionary = new Dictionary<string, string>();
-
-                        if (dictionaryKeys != null)
-                        {
-                            foreach (var key in dictionaryKeys)
-                            {
-                                if (detail.TextDictionary.ContainsKey(key))
-                                {
-                                    textDictionary.Add(key, detail.TextDictionary[key]);
-                                }
-                            }
-                        }
+                        var textDictionary = dictionaryKeys is null
+                            ? new Dictionary<string, string>()
+                            : dictionaryKeys.Where(key => detail.TextDictionary.ContainsKey(key))
+                                .ToDictionary(key => key, key => detail.TextDictionary[key]);
 
                         var ds = new DetailSummary()
                         {

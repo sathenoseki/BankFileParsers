@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections;
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,7 +16,7 @@ namespace BankFileParsers.Classes
         public string Immediate { get; set; }
         public string OneDay { get; set; }
         public string TwoOrMoreDays { get; set; }
-        public DateTime? AvailableDate { get; set; }
+        public DateTime? FundsAvailableDate { get; set; }
         public string BankReferenceNumber { get; set; }
         public string CustomerReferenceNumber { get; set; }
         public string Text { get; set; }
@@ -28,50 +28,23 @@ namespace BankFileParsers.Classes
             TextList = new List<string>();
             TextDictionary = new Dictionary<string, string>();
 
-            var list = new List<string> { data.TransactionDetail };
-            list.AddRange(data.DetailContinuation);
+            var lineData =  data.TransactionDetail.Split(',')
+                .Concat(data.DetailContinuation.Select(d => d[2..]))
+                .Select(detail => detail.TrimStart(',').Trim().TrimEnd('/'));
 
-            var lineData = "";
-            foreach (var section in list)
-            {
-                var line = section.Trim();
-                // Some / are optional?
-                //if (!line.EndsWith("/")) throw new Exception("I got a line without a trailing /");
+            var queue = new Queue<string>(lineData);
 
-                if (line.StartsWith("16"))
-                {
-                    if (!line.EndsWith("/"))
-                    {
-                        line += "/";
-                    }
-                }
-                else if (line.StartsWith("88"))
-                {
-                    line = line[2..];//.Replace("/", " ");
-
-                    if (!line.EndsWith("/"))
-                    {
-                        line += "/";
-                    }
-                }
-                else throw new Exception("I got a bad line: " + line);
-                lineData += line;
-            }
-
-            // Now try to figure out what's left ;-)
-            var stack = new Stack(lineData.Split(',').Reverse().ToArray());
-
-            RecordCode = stack.Pop().ToString();
-            TypeCode = stack.Pop().ToString();
-            Amount = stack.Pop().ToString();
-            FundsType = stack.Pop().ToString();
+            RecordCode = queue.Dequeue();
+            TypeCode = queue.Dequeue();
+            Amount = queue.Dequeue();
+            FundsType = queue.Dequeue();
 
             switch (FundsType.ToUpper())
             {
                 case "S":
-                    Immediate = stack.Pop().ToString();
-                    OneDay = stack.Pop().ToString();
-                    TwoOrMoreDays = stack.Pop().ToString();
+                    Immediate = queue.Dequeue();
+                    OneDay = queue.Dequeue();
+                    TwoOrMoreDays = queue.Dequeue();
                     break;
                 case "D":
                     // next field is the number of distribution pairs
@@ -79,36 +52,28 @@ namespace BankFileParsers.Classes
                     // currencyCode would be used here
                     throw new Exception("I don't want to deal with this one yet - " + currencyCode);
                 case "V":
-                    var date = stack.Pop().ToString();
-                    var time = stack.Pop().ToString();
-                    AvailableDate = BaiFileHelpers.DateTimeFromFields(date, time);
+                    var date = queue.Dequeue();
+                    var time = queue.Dequeue();
+                    FundsAvailableDate = BaiFileHelpers.DateTimeFromFields(date, time);
                     break;
             }
 
-            BankReferenceNumber = stack.Pop().ToString();
-            CustomerReferenceNumber = stack.Pop().ToString();
-            // What's left on the stack?
-            Text = LeftoverStackToString(stack);
+            BankReferenceNumber = queue.Dequeue();
+            CustomerReferenceNumber = queue.Dequeue();
 
-            CreateTextList();
+
+            CreateTextList(queue);
             CreateTextDictionary();
 
             Text = ConcatenateTextLines();
         }
 
-        private static string LeftoverStackToString(Stack stack)
-        {
-            var ret = "";
-            while (stack.Count > 0)
-                ret += stack.Pop().ToString();
-            return ret;
-        }
 
-        private void CreateTextList()
+
+        private void CreateTextList(IEnumerable<string> strings)
         {
-            // Now fill up the List
-            var fields = Text.Split(new[] {'/'}, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var field in fields)
+
+            foreach (var field in strings)
             {
                 TextList.Add(field);
             }
@@ -116,25 +81,22 @@ namespace BankFileParsers.Classes
 
         private void CreateTextDictionary()
         {
-            var dictionaryList = new List<string>();
-            var fields = Text.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var field in fields)
-            {
-                if (dictionaryList.Count > 0 && !field.Contains(':'))
-                {
-                    var text = dictionaryList[^1];
-                    if (text.EndsWith(":")) text += field;
-                    else text += " " + field;
-                    dictionaryList[^1] = text;
-                }
-                else
-                    dictionaryList.Add(field);
-            }
+            // var dictionaryList = new List<string>();
+            // foreach (var field in TextList)
+            // {
+            //     if (dictionaryList.Count > 0 && !field.Contains(':'))
+            //     {
+            //         var text = dictionaryList[^1];
+            //         if (text.EndsWith(":")) text += field;
+            //         else text += " " + field;
+            //         dictionaryList[^1] = text;
+            //     }
+            //     else
+            //         dictionaryList.Add(field);
+            // }
 
-            foreach (var item in dictionaryList)
+            foreach (var parts in TextList.Select(item => item.Split('=')).Where(parts => parts.Length == 2))
             {
-                var parts = item.Split(':');
-                if (parts.Length != 2) continue;
                 if (!TextDictionary.ContainsKey(parts[0]))
                 {
                     TextDictionary.Add(parts[0], parts[1]);
@@ -156,10 +118,10 @@ namespace BankFileParsers.Classes
 
         private string ConcatenateTextLines()
         {
-            var fields = Text.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+
             var concatText = new StringBuilder();
 
-            foreach (var field in fields)
+            foreach (var field in TextList)
             {
                 if (concatText.ToString().EndsWith(":"))
                 {

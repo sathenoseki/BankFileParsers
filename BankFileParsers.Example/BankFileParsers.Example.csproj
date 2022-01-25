@@ -8,17 +8,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BankFileParsers\BankFileParsers.csproj" />
-    <Content Include="BAI-sample.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="bin\Debug\net6.0" />
+      <Content Include="Files/BAI-Test.txt">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
   </ItemGroup>
-
-  <ItemGroup>
-    <None Include="bin\Debug\net6.0\Files\BAI-sample.txt" />
-  </ItemGroup>
-
 </Project>

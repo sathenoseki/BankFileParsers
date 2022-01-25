@@ -10,8 +10,6 @@ namespace BankFileParsers.Parsers
 {
     public class BaiParser
     {
-        //private string[] _data;
-
         public static async Task<BaiFile> Parse(string fileName)
         {
             if (!File.Exists(fileName)) throw new Exception("File not found, nothing to parse");
@@ -22,9 +20,9 @@ namespace BankFileParsers.Parsers
         public static async Task<BaiFile> Parse(Stream stream)
         {
             var bai = new BaiFile();
-            var group = new BaiGroup("--default--");
-            var account = new BaiAccount("--default--");
-            var detail = new BaiDetail("--default--");
+            BaiGroup group = null;
+            BaiAccount account = null;
+            BaiDetail detail = null;
             var continuation = ContinuationType.Account;
 
             var s = new StreamReader(stream);
@@ -35,36 +33,9 @@ namespace BankFileParsers.Parsers
 
                 switch (type)
                 {
-                    case "01":
-                        bai.FileHeader = line;
-                        break;
-                    case "99":
-                        bai.FileTrailer = line;
-                        break;
-                    case "02":
-                        continuation = ContinuationType.Group;
-                        group = new BaiGroup(line);
-                        break;
-                    case "98":
-                        group.GroupTrailer = line;
-                        bai.Groups.Add(group);
-                        break;
-                    case "03":
-                        continuation = ContinuationType.Account;
-                        account = new BaiAccount(line);
-                        detail = new BaiDetail("--default--");
-                        break;
-                    case "49":
-                    {
-                        if (detail.TransactionDetail != "--default--")
-                            account.Details.Add(detail);
-                        account.AccountTrailer = line;
-                        group.Accounts.Add(account);
-                        break;
-                    }
                     case "16":
                     {
-                        if (detail.TransactionDetail != "--default--")
+                        if (detail?.TransactionDetail is not null)
                         {
                             account.Details.Add(detail);
                         }
@@ -85,8 +56,35 @@ namespace BankFileParsers.Parsers
                                 detail.DetailContinuation.Add(line);
                                 break;
                         }
-
                         break;
+                    case "01":
+                        bai.FileHeader = line;
+                        break;
+                    case "99":
+                        bai.FileTrailer = line;
+                        break;
+                    case "02":
+                        continuation = ContinuationType.Group;
+                        group = new BaiGroup(line);
+                        break;
+                    case "98":
+                        group.GroupTrailer = line;
+                        bai.Groups.Add(group);
+                        break;
+                    case "03":
+                        continuation = ContinuationType.Account;
+                        account = new BaiAccount(line);
+                        detail = null;
+                        break;
+                    case "49":
+                    {
+                        if (detail?.TransactionDetail is not null)
+                            account.Details.Add(detail);
+                        account.AccountTrailer = line;
+                        group.Accounts.Add(account);
+                        break;
+                    }
+
                     default:
                         throw new NotImplementedException("I don't know what to do with this line: " + line);
                 }

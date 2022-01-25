@@ -20,9 +20,9 @@ namespace BankFileParsers.Helpers
             return item;
         }
 
-        public static string ExportToCsv<T>(this List<T> list, List<string> dictionaryKeys, List<string> fields)
+        public static string ExportToCsv<T>(this IEnumerable<T> list, List<string> dictionaryKeys, List<string> fields)
         {
-            if (fields == null) fields = new List<string>();
+            fields ??= new List<string>();
             var ret = "";
             var dict = new Dictionary<string, PropertyInfo>();
             var type = typeof (T);
@@ -106,7 +106,7 @@ namespace BankFileParsers.Helpers
             return ret;
         }
 
-        public static string ExportToCsv<T>(this List<T> list, List<string> dictionaryKeys = null)
+        public static string ExportToCsv<T>(this IEnumerable<T> list, List<string> dictionaryKeys = null)
         {
             var fields = new List<string>();
             var type = typeof (T);

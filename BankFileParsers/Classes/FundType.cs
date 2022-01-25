@@ -14,7 +14,7 @@ namespace BankFileParsers.Classes
         public string Immediate { get; set; }
         public string OneDay { get; set; }
         public string TwoOrMoreDays { get; set; }
-        public DateTime? AvalibleDate { get; set; }
+        public DateTime? AvailableDate { get; set; }
         public string NumberOfDistributions { get; set; }
         public Dictionary<int, decimal> DistributionInfo { get; set; }
 
@@ -35,10 +35,10 @@ namespace BankFileParsers.Classes
             TwoOrMoreDays = moreDays;
         }
 
-        public FundType(string typeCode, string amount, string itemCount, string fundsType, DateTime avalibleDate) :
+        public FundType(string typeCode, string amount, string itemCount, string fundsType, DateTime availableDate) :
             this(typeCode, amount, itemCount, fundsType)
         {
-            AvalibleDate = avalibleDate;
+            AvailableDate = availableDate;
         }
 
         public FundType(string typeCode, string amount, string itemCount, string fundsType, string distributions, Dictionary<int, decimal> info) :
